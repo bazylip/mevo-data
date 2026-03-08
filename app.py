@@ -108,11 +108,14 @@ uploaded = st.file_uploader("Wgraj plik mevo.zip", type="zip")
 if uploaded is None:
     st.markdown(
         "#### Jak pobrać dane?\n"
-        "1. Wejdź na **rowermevo.pl**\n"
-        "2. Kliknij **Profil** (prawy górny róg)\n"
-        "3. Przewiń w dół do sekcji **Twoje dane**\n"
-        "4. Wygeneruj i pobierz archiwum ZIP z danymi\n"
-        "5. Wgraj pobrany plik ZIP powyżej"
+        '1. Wejdź na <a href="https://rowermevo.pl" target="_blank">rowermevo.pl</a>\n'
+        "2. Nie pobieraj aplikacji, zamiast tego zaloguj się bezpośrednio na stronie\n"
+        "3. Kliknij **Profil** (prawy górny róg)\n"
+        "4. Przewiń w dół do sekcji **Twoje dane**\n"
+        "5. Kliknij **Tworzenie plików JSON** aby wygenerować dane\n"
+        "6. Pobierz archiwum ZIP z danymi\n"
+        "7. Wgraj pobrany plik ZIP powyżej",
+        unsafe_allow_html=True,
     )
     st.stop()
 
@@ -179,7 +182,7 @@ freq_label = st.radio(
     label_visibility="collapsed",
 )
 freq_df = compute_frequency(df, freq_options[freq_label])
-st.plotly_chart(build_frequency_chart(freq_df), use_container_width=True)
+st.plotly_chart(build_frequency_chart(freq_df), use_container_width=True, config={"staticPlot": True})
 
 # --- Heatmap map ---
 st.markdown("---")
@@ -201,7 +204,7 @@ station_df = compute_station_stats(df)
 top_n = min(10, len(station_df))
 top_stations = station_df.head(top_n)
 
-st.plotly_chart(build_top_stations_chart(station_df, n=top_n), use_container_width=True)
+st.plotly_chart(build_top_stations_chart(station_df, n=top_n), use_container_width=True, config={"staticPlot": True})
 
 cols_per_row = 5
 rows_needed = (top_n + cols_per_row - 1) // cols_per_row
@@ -232,13 +235,13 @@ for row_idx in range(rows_needed):
 st.markdown("---")
 st.subheader("Rozkład czasu podróży")
 durations_min = compute_duration_bins(df)
-st.plotly_chart(build_duration_histogram(durations_min), use_container_width=True)
+st.plotly_chart(build_duration_histogram(durations_min), use_container_width=True, config={"staticPlot": True})
 
 # --- Day-hour heatmap ---
 st.markdown("---")
 st.subheader("Kiedy jeździsz?")
 matrix = compute_day_hour_matrix(df)
-st.plotly_chart(build_day_hour_heatmap(matrix), use_container_width=True)
+st.plotly_chart(build_day_hour_heatmap(matrix), use_container_width=True, config={"staticPlot": True})
 
 # --- Fun stats ---
 st.markdown("---")
@@ -308,14 +311,6 @@ with col2:
         fun_card("🔥", f"{fun['records']['longest_streak_days']} dni", "Najdłuższa seria"),
         unsafe_allow_html=True,
     )
-    st.markdown(
-        fun_card(
-            "⭐", f"{fun['records']['favorite_station_code']}",
-            f"Ulubiona stacja ({fun['records']['favorite_station_count']}×)",
-        ),
-        unsafe_allow_html=True,
-    )
-
 with col3:
     st.markdown("**Kamienie milowe**", unsafe_allow_html=True)
     st.markdown(
