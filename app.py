@@ -91,7 +91,7 @@ DEV_MODE = os.environ.get("DEV", "").lower() in ("1", "true")
 if DEV_MODE:
     uploaded = None
 else:
-    uploaded = st.file_uploader("Wgraj plik mevo.zip", type="zip")
+    uploaded = st.file_uploader("Wgraj plik w formacie .zip", type="zip")
     if uploaded is None:
         st.markdown(
             "#### Jak pobrać dane?\n"
