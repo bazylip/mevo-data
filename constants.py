@@ -28,6 +28,21 @@ MONTH_NAMES_PL = {
     12: "Grudzień",
 }
 
+MONTH_NAMES_PL_SHORT = {
+    1: "sty",
+    2: "lut",
+    3: "mar",
+    4: "kwi",
+    5: "maj",
+    6: "cze",
+    7: "lip",
+    8: "sie",
+    9: "wrz",
+    10: "paź",
+    11: "lis",
+    12: "gru",
+}
+
 COLOR_PALETTE = {
     "primary": "#00D4FF",
     "accent": "#FF0080",

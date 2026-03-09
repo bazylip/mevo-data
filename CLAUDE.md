@@ -1,4 +1,4 @@
-# Mevo w Liczbach
+# Mevo Wrapped
 
 Streamlit dashboard for visualizing personal Mevo (Gdańsk city bike) trip data. Polish UI, dark theme. Users upload their `mevo.zip` export and get stats, charts, and maps.
 
@@ -28,7 +28,8 @@ requirements.txt        # Dependencies
 ## Dashboard Sections (top to bottom)
 
 1. Instructions (shown before upload, hidden after)
-2. Summary stats: 2 rows × 4 metrics (trips, distance, time, stations / avg time, avg dist, days, date range)
+2. Shareable summary card — 9:16 floating white card with 2×2 stats grid + GitHub-style activity heatmap (last 12 months, green ramp). Download (html2canvas PNG) + Share (Web Share API) buttons below
+3. Summary stats: 2 rows × 4 metrics (trips, distance, time, stations / avg time, avg dist, days, date range)
 3. Częstotliwość przejazdów — bar chart with day/week/month radio toggle
 4. Mapa stacji — folium heatmap with start/end station radio toggle
 5. Najczęściej odwiedzane stacje — horizontal bar chart + clickable popover buttons with mini maps

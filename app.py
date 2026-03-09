@@ -9,6 +9,7 @@ from charts import (
     build_top_stations_chart,
 )
 from data_processing import (
+    compute_activity_heatmap,
     compute_day_hour_matrix,
     compute_distances,
     compute_duration_bins,
@@ -103,20 +104,27 @@ st.markdown(
 
 st.title("Mevo Wrapped")
 
-uploaded = st.file_uploader("Wgraj plik mevo.zip", type="zip")
-if uploaded is None:
-    st.markdown(
-        "#### Jak pobrać dane?\n"
-        '1. Wejdź na <a href="https://rowermevo.pl" target="_blank">rowermevo.pl</a>\n'
-        "2. Nie pobieraj aplikacji, zamiast tego zaloguj się bezpośrednio na stronie\n"
-        "3. Kliknij **Profil** (prawy górny róg)\n"
-        "4. Przewiń w dół do sekcji **Twoje dane**\n"
-        "5. Kliknij **Tworzenie plików JSON** aby wygenerować dane\n"
-        "6. Pobierz archiwum ZIP z danymi\n"
-        "7. Wgraj pobrany plik ZIP powyżej",
-        unsafe_allow_html=True,
-    )
-    st.stop()
+import os
+
+DEV_MODE = os.environ.get("DEV", "").lower() in ("1", "true")
+
+if DEV_MODE:
+    uploaded = None
+else:
+    uploaded = st.file_uploader("Wgraj plik mevo.zip", type="zip")
+    if uploaded is None:
+        st.markdown(
+            "#### Jak pobrać dane?\n"
+            '1. Wejdź na <a href="https://rowermevo.pl" target="_blank">rowermevo.pl</a>\n'
+            "2. Nie pobieraj aplikacji, zamiast tego zaloguj się bezpośrednio na stronie\n"
+            "3. Kliknij **Profil** (prawy górny róg)\n"
+            "4. Przewiń w dół do sekcji **Twoje dane**\n"
+            "5. Kliknij **Tworzenie plików JSON** aby wygenerować dane\n"
+            "6. Pobierz archiwum ZIP z danymi\n"
+            "7. Wgraj pobrany plik ZIP powyżej",
+            unsafe_allow_html=True,
+        )
+        st.stop()
 
 
 @st.cache_data
@@ -127,9 +135,171 @@ def load_data(file_bytes):
     return parse_zip(buf)
 
 
-df = load_data(uploaded.read())
+if DEV_MODE:
+    from pathlib import Path
+    df = load_data(Path("mevo.zip").read_bytes())
+else:
+    df = load_data(uploaded.read())
 distances = compute_distances(df)
 metrics = compute_overview_metrics(df, distances)
+heatmap_data = compute_activity_heatmap(df)
+
+# --- Shareable Summary Card ---
+total_km_card = metrics["total_distance_km"]
+total_s_card = metrics["total_duration_s"]
+total_h_card = int(total_s_card // 3600)
+total_min_card = int((total_s_card % 3600) // 60)
+
+# Build heatmap grid HTML
+GREEN_RAMP = ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"]
+
+
+def _heatmap_color(count):
+    if count == 0:
+        return GREEN_RAMP[0]
+    elif count == 1:
+        return GREEN_RAMP[1]
+    elif count == 2:
+        return GREEN_RAMP[2]
+    elif count <= 4:
+        return GREEN_RAMP[3]
+    else:
+        return GREEN_RAMP[4]
+
+
+# Flatten heatmap days chronologically
+from constants import MONTH_NAMES_PL_SHORT
+
+HEATMAP_COLS = 22
+CELL_PX = 14
+GAP_PX = 2
+STEP_PX = CELL_PX + GAP_PX
+
+heatmap_cells = ""
+month_labels_html = ""
+prev_month = None
+day_index = 0
+months_seen = 0
+for week in heatmap_data["weeks"]:
+    for day in week:
+        if not day["in_range"]:
+            continue
+        m = day["date"].month
+        if m != prev_month:
+            months_seen += 1
+            if months_seen % 3 == 1:
+                row = day_index // HEATMAP_COLS
+                y_pos = row * STEP_PX
+                lbl = MONTH_NAMES_PL_SHORT[m]
+                month_labels_html += f'<div class="month-lbl" style="top:{y_pos}px;">{lbl}</div>'
+            prev_month = m
+        color = _heatmap_color(day["count"])
+        heatmap_cells += f'<div class="cell" style="background:{color};"></div>'
+        day_index += 1
+
+share_text = f"Przejechałem {total_km_card:.1f} km na Mevo! Sprawdź swoje wyniki na mevo-wrapped.streamlit.app"
+
+import streamlit.components.v1 as components
+
+card_component_html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+  body {{ background: transparent; display: flex; flex-direction: column; align-items: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
+  #card {{
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 40px 32px 32px;
+    width: 420px;
+    aspect-ratio: 9 / 16;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    color: #1a1a2e;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }}
+  .header {{ text-align: center; margin-bottom: 24px; }}
+  .header .emoji {{ font-size: 2rem; margin-bottom: 4px; }}
+  .header .title {{ font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; }}
+  .stats {{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }}
+  .stat {{ text-align: center; background: #f8f9fa; border-radius: 12px; padding: 16px 8px; }}
+  .stat .num {{ font-size: 1.8rem; font-weight: 800; color: #1a1a2e; white-space: nowrap; }}
+  .stat .lbl {{ font-size: 0.8rem; color: #888; margin-top: 2px; }}
+  .heatmap-section {{ flex: 1; display: flex; flex-direction: column; justify-content: center; }}
+  .heatmap-title {{ font-size: 0.85rem; font-weight: 600; color: #555; margin-bottom: 8px; text-align: center; }}
+  .heatmap-wrap {{ position: relative; padding-left: 30px; margin: 0 auto; width: fit-content; }}
+  .heatmap-wrap .month-lbl {{ position: absolute; left: 0; font-size: 0.65rem; color: #999; font-weight: 600; line-height: {CELL_PX}px; }}
+  .heatmap-grid {{ display: grid; grid-template-columns: repeat({HEATMAP_COLS}, {CELL_PX}px); gap: {GAP_PX}px; }}
+  .heatmap-grid .cell {{ width: {CELL_PX}px; height: {CELL_PX}px; border-radius: 2px; }}
+  .footer {{ text-align: center; margin-top: 20px; }}
+  .footer span {{ font-size: 0.75rem; color: #bbb; }}
+  .buttons {{ display: flex; gap: 12px; margin-top: 16px; justify-content: center; }}
+  .buttons button {{
+    border: none; border-radius: 8px; padding: 10px 24px;
+    font-size: 0.9rem; cursor: pointer; font-weight: 600;
+  }}
+  .btn-dl {{ background: #1a1a2e; color: white; }}
+  .btn-share {{ background: #00D4FF; color: #1a1a2e; }}
+  .btn-dl:hover {{ opacity: 0.85; }}
+  .btn-share:hover {{ opacity: 0.85; }}
+</style>
+</head>
+<body>
+  <div id="card">
+    <div class="header">
+      <div class="emoji">🚲</div>
+      <div class="title">Mevo Wrapped</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="num">{metrics['total_trips']}</div><div class="lbl">przejazdy</div></div>
+      <div class="stat"><div class="num">{total_km_card:.1f} km</div><div class="lbl">dystans</div></div>
+      <div class="stat"><div class="num">{total_h_card} h {total_min_card} min</div><div class="lbl">czas jazdy</div></div>
+      <div class="stat"><div class="num">{metrics['unique_stations']}</div><div class="lbl">stacje</div></div>
+    </div>
+    <div class="heatmap-section">
+      <div class="heatmap-title">Aktywność w ostatnim roku</div>
+      <div class="heatmap-wrap">
+        {month_labels_html}
+        <div class="heatmap-grid">{heatmap_cells}</div>
+      </div>
+    </div>
+    <div class="footer"><span>mevo-wrapped.streamlit.app</span></div>
+  </div>
+  <div class="buttons">
+    <button class="btn-dl" onclick="downloadCard()">Pobierz</button>
+    <button class="btn-share" onclick="shareCard()">Udostępnij</button>
+  </div>
+  <script>
+    function downloadCard() {{
+      html2canvas(document.getElementById('card'), {{scale: 3, backgroundColor: null, useCORS: true}}).then(function(canvas) {{
+        var link = document.createElement('a');
+        link.download = 'mevo-wrapped.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      }});
+    }}
+    function shareCard() {{
+      var text = '{share_text}';
+      if (navigator.share) {{
+        navigator.share({{title: 'Mevo Wrapped', text: text, url: 'https://mevo-wrapped.streamlit.app'}}).catch(function(){{}});
+      }} else {{
+        navigator.clipboard.writeText(text).then(function() {{
+          var btn = document.querySelector('.btn-share');
+          btn.textContent = 'Skopiowano!';
+          setTimeout(function() {{ btn.textContent = 'Udostępnij'; }}, 2000);
+        }});
+      }}
+    }}
+  </script>
+</body>
+</html>
+"""
+
+components.html(card_component_html, height=860)
 
 # --- Overview: Row 1 ---
 st.markdown("---")

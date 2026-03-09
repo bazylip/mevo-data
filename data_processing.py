@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 
-from constants import CO2_PER_KM_CAR, DISTANCE_FACTOR, FUEL_PER_KM
+from constants import CO2_PER_KM_CAR, DISTANCE_FACTOR, FUEL_PER_KM, MONTH_NAMES_PL_SHORT
 
 
 def parse_zip(uploaded_file) -> pd.DataFrame:
@@ -194,6 +194,51 @@ def compute_frequency(df, freq="month"):
 
 def compute_duration_bins(df):
     return df["duration_s"] / 60.0
+
+
+def compute_activity_heatmap(df):
+    """Compute GitHub-style activity heatmap data for the last 12 months.
+
+    Returns a list of weeks, where each week is a list of 7 dicts
+    (Mon=0 to Sun=6) with keys: date, count, in_range.
+    Also returns month labels with their column positions.
+    """
+    from datetime import date
+
+    today = date.today()
+    year_ago = today - timedelta(days=364)
+
+    # Count trips per date
+    trip_counts = df.groupby("date").size().to_dict()
+
+    # Find the Monday on or before year_ago
+    start_monday = year_ago - timedelta(days=year_ago.weekday())
+
+    weeks = []
+    month_labels = []
+    current = start_monday
+    prev_month = None
+
+    while current <= today:
+        week = []
+        for dow in range(7):
+            d = current + timedelta(days=dow)
+            in_range = year_ago <= d <= today
+            week.append({
+                "date": d,
+                "count": trip_counts.get(d, 0) if in_range else 0,
+                "in_range": in_range,
+            })
+            if in_range and d.month != prev_month and d.day <= 7:
+                month_labels.append({
+                    "month": MONTH_NAMES_PL_SHORT[d.month],
+                    "col": len(weeks),
+                })
+                prev_month = d.month
+        weeks.append(week)
+        current += timedelta(days=7)
+
+    return {"weeks": weeks, "month_labels": month_labels}
 
 
 def compute_fun_stats(df, distances):
