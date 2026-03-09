@@ -151,20 +151,20 @@ total_h_card = int(total_s_card // 3600)
 total_min_card = int((total_s_card % 3600) // 60)
 
 # Build heatmap grid HTML
-GREEN_RAMP = ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"]
+HEAT_RAMP = ["#e8e9ef", "#a8adc6", "#6872a0", "#2d3a6b", "#0B163F"]
 
 
 def _heatmap_color(count):
     if count == 0:
-        return GREEN_RAMP[0]
+        return HEAT_RAMP[0]
     elif count == 1:
-        return GREEN_RAMP[1]
+        return HEAT_RAMP[1]
     elif count == 2:
-        return GREEN_RAMP[2]
+        return HEAT_RAMP[2]
     elif count <= 4:
-        return GREEN_RAMP[3]
+        return HEAT_RAMP[3]
     else:
-        return GREEN_RAMP[4]
+        return HEAT_RAMP[4]
 
 
 # Flatten heatmap days chronologically
@@ -217,17 +217,17 @@ card_component_html = f"""
     width: 420px;
     aspect-ratio: 9 / 16;
     box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-    color: #1a1a2e;
+    color: #0B163F;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
   }}
   .header {{ text-align: center; margin-bottom: 24px; }}
   .header .emoji {{ font-size: 2rem; margin-bottom: 4px; }}
-  .header .title {{ font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; }}
+  .header .title {{ font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; color: #F15B4E; }}
   .stats {{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }}
-  .stat {{ text-align: center; background: #f8f9fa; border-radius: 12px; padding: 16px 8px; }}
-  .stat .num {{ font-size: 1.8rem; font-weight: 800; color: #1a1a2e; white-space: nowrap; }}
+  .stat {{ text-align: center; background: #fdf5f4; border-radius: 12px; padding: 16px 8px; }}
+  .stat .num {{ font-size: 1.8rem; font-weight: 800; color: #F15B4E; white-space: nowrap; }}
   .stat .lbl {{ font-size: 0.8rem; color: #888; margin-top: 2px; }}
   .heatmap-section {{ flex: 1; display: flex; flex-direction: column; justify-content: center; }}
   .heatmap-title {{ font-size: 0.85rem; font-weight: 600; color: #555; margin-bottom: 8px; text-align: center; }}
@@ -242,8 +242,8 @@ card_component_html = f"""
     border: none; border-radius: 8px; padding: 10px 24px;
     font-size: 0.9rem; cursor: pointer; font-weight: 600;
   }}
-  .btn-dl {{ background: #1a1a2e; color: white; }}
-  .btn-share {{ background: #00D4FF; color: #1a1a2e; }}
+  .btn-dl {{ background: #0B163F; color: white; }}
+  .btn-share {{ background: #F15B4E; color: white; }}
   .btn-dl:hover {{ opacity: 0.85; }}
   .btn-share:hover {{ opacity: 0.85; }}
 </style>
