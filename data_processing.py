@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 
-from constants import CO2_PER_KM_CAR, DISTANCE_FACTOR, FUEL_PER_KM, MONTH_NAMES_PL_SHORT
+from constants import CO2_PER_KM_CAR, DISTANCE_FACTOR, FUEL_PER_KM, MONTH_NAMES_PL_SHORT, MONTH_NAMES_SHORT
 
 
 def parse_zip(uploaded_file) -> pd.DataFrame:
@@ -196,7 +196,7 @@ def compute_duration_bins(df):
     return df["duration_s"] / 60.0
 
 
-def compute_activity_heatmap(df):
+def compute_activity_heatmap(df, month_names_short=None):
     """Compute GitHub-style activity heatmap data for the last 12 months.
 
     Returns a list of weeks, where each week is a list of 7 dicts
@@ -204,6 +204,9 @@ def compute_activity_heatmap(df):
     Also returns month labels with their column positions.
     """
     from datetime import date
+
+    if month_names_short is None:
+        month_names_short = MONTH_NAMES_PL_SHORT
 
     today = date.today()
     year_ago = today - timedelta(days=364)
@@ -231,7 +234,7 @@ def compute_activity_heatmap(df):
             })
             if in_range and d.month != prev_month and d.day <= 7:
                 month_labels.append({
-                    "month": MONTH_NAMES_PL_SHORT[d.month],
+                    "month": month_names_short[d.month],
                     "col": len(weeks),
                 })
                 prev_month = d.month

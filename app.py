@@ -9,6 +9,7 @@ from charts import (
     build_top_stations_chart,
     build_top_stations_map,
 )
+from constants import MONTH_NAMES_SHORT, TRANSLATIONS
 from data_processing import (
     compute_activity_heatmap,
     compute_day_hour_matrix,
@@ -22,6 +23,16 @@ from data_processing import (
 )
 
 st.set_page_config(page_title="Mevo Wrapped", layout="wide", page_icon="🚲")
+
+# --- Language ---
+lang = st.query_params.get("lang", "pl")
+if lang not in ("pl", "en"):
+    lang = "pl"
+
+
+def t(key):
+    return TRANSLATIONS[key][lang]
+
 
 st.markdown(
     """
@@ -82,7 +93,19 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title("Mevo Wrapped")
+_title_col, _lang_col = st.columns([8, 1])
+with _title_col:
+    st.title("Mevo Wrapped")
+with _lang_col:
+    _pl_style = "opacity:1;background:#eee;border-radius:6px;padding:2px 6px;" if lang == "pl" else "opacity:0.4;padding:2px 6px;"
+    _en_style = "opacity:1;background:#eee;border-radius:6px;padding:2px 6px;" if lang == "en" else "opacity:0.4;padding:2px 6px;"
+    st.markdown(
+        f'<div style="font-size:1.6rem;display:flex;gap:4px;justify-content:flex-end;padding-top:18px;">'
+        f'<a href="?lang=pl" target="_self" style="text-decoration:none;{_pl_style}">🇵🇱</a>'
+        f'<a href="?lang=en" target="_self" style="text-decoration:none;{_en_style}">🇬🇧</a>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
 import os
 
@@ -91,16 +114,16 @@ DEV_MODE = os.environ.get("DEV", "").lower() in ("1", "true")
 if DEV_MODE:
     uploaded = None
 else:
-    uploaded = st.file_uploader("Wgraj plik w formacie .zip", type="zip")
+    uploaded = st.file_uploader(t("upload_label"), type="zip")
     if uploaded is None:
         st.markdown(
-            "#### Jak pobrać dane?\n"
-            '1. Wejdź na <a href="https://rowermevo.pl" target="_blank">rowermevo.pl</a>\n'
-            "2. Nie pobieraj aplikacji, zamiast tego zaloguj się bezpośrednio na stronie\n"
-            "3. Przewiń w dół do sekcji **Twoje dane**\n"
-            "4. Kliknij **Tworzenie plików JSON** aby wygenerować dane\n"
-            "5. Pobierz archiwum ZIP z danymi\n"
-            "6. Wgraj pobrany plik ZIP powyżej",
+            t("how_to_download") + "\n"
+            + t("instr_step1") + "\n"
+            + t("instr_step2") + "\n"
+            + t("instr_step3") + "\n"
+            + t("instr_step4") + "\n"
+            + t("instr_step5") + "\n"
+            + t("instr_step6"),
             unsafe_allow_html=True,
         )
         st.stop()
@@ -121,7 +144,7 @@ else:
     df = load_data(uploaded.read())
 distances = compute_distances(df)
 metrics = compute_overview_metrics(df, distances)
-heatmap_data = compute_activity_heatmap(df)
+heatmap_data = compute_activity_heatmap(df, month_names_short=MONTH_NAMES_SHORT[lang])
 
 # --- Shareable Summary Card ---
 total_km_card = metrics["total_distance_km"]
@@ -147,13 +170,12 @@ def _heatmap_color(count):
 
 
 # Flatten heatmap days chronologically
-from constants import MONTH_NAMES_PL_SHORT
-
 HEATMAP_COLS = 22
 CELL_PX = 14
 GAP_PX = 2
 STEP_PX = CELL_PX + GAP_PX
 
+month_names_short = MONTH_NAMES_SHORT[lang]
 heatmap_cells = ""
 month_labels_html = ""
 prev_month = None
@@ -169,14 +191,14 @@ for week in heatmap_data["weeks"]:
             if months_seen % 3 == 1:
                 row = day_index // HEATMAP_COLS
                 y_pos = row * STEP_PX
-                lbl = MONTH_NAMES_PL_SHORT[m]
+                lbl = month_names_short[m]
                 month_labels_html += f'<div class="month-lbl" style="top:{y_pos}px;">{lbl}</div>'
             prev_month = m
         color = _heatmap_color(day["count"])
         heatmap_cells += f'<div class="cell" style="background:{color};"></div>'
         day_index += 1
 
-share_text = f"Mam na koncie {total_km_card:.1f} km na Mevo! Sprawdź swoje wyniki na mevo-wrapped.streamlit.app"
+share_text = t("card_share_text").format(km=f"{total_km_card:.1f}")
 
 import streamlit.components.v1 as components
 
@@ -232,13 +254,13 @@ card_component_html = f"""
       <div class="title">Mevo Wrapped</div>
     </div>
     <div class="stats">
-      <div class="stat"><div class="num">{metrics['total_trips']}</div><div class="lbl">przejazdy</div></div>
-      <div class="stat"><div class="num">{total_km_card:.1f} km</div><div class="lbl">dystans</div></div>
-      <div class="stat"><div class="num">{total_h_card} h {total_min_card} min</div><div class="lbl">czas jazdy</div></div>
-      <div class="stat"><div class="num">{metrics['unique_stations']}</div><div class="lbl">stacje</div></div>
+      <div class="stat"><div class="num">{metrics['total_trips']}</div><div class="lbl">{t("card_trips")}</div></div>
+      <div class="stat"><div class="num">{total_km_card:.1f} km</div><div class="lbl">{t("card_distance")}</div></div>
+      <div class="stat"><div class="num">{total_h_card} h {total_min_card} min</div><div class="lbl">{t("card_time")}</div></div>
+      <div class="stat"><div class="num">{metrics['unique_stations']}</div><div class="lbl">{t("card_stations")}</div></div>
     </div>
     <div class="heatmap-section">
-      <div class="heatmap-title">Aktywność w ostatnim roku</div>
+      <div class="heatmap-title">{t("card_activity")}</div>
       <div class="heatmap-wrap">
         {month_labels_html}
         <div class="heatmap-grid">{heatmap_cells}</div>
@@ -247,7 +269,7 @@ card_component_html = f"""
     <div class="footer"><span>mevo-wrapped.streamlit.app</span></div>
   </div>
   <div class="buttons">
-    <button class="btn-share" onclick="shareCard()">Udostępnij</button>
+    <button class="btn-share" onclick="shareCard()">{t("card_share")}</button>
   </div>
   <script>
     function shareCard() {{
@@ -273,11 +295,11 @@ card_component_html = f"""
       }});
     }}
     function showCopied(btn) {{
-      btn.textContent = 'Skopiowano!';
+      btn.textContent = '{t("card_copied")}';
       btn.style.background = '#22c55e';
       btn.disabled = false;
       setTimeout(function() {{
-        btn.textContent = 'Udostępnij';
+        btn.textContent = '{t("card_share")}';
         btn.style.background = '#F15B4E';
       }}, 2000);
     }}
@@ -306,13 +328,13 @@ total_min = int((total_s % 3600) // 60)
 
 c1, c2, c3, c4 = st.columns(4)
 with c1:
-    st.metric("Liczba przejazdów", f"{metrics['total_trips']}")
+    st.metric(t("total_trips"), f"{metrics['total_trips']}")
 with c2:
-    st.metric("Łączny dystans", f"{total_km:.1f} km")
+    st.metric(t("total_distance"), f"{total_km:.1f} km")
 with c3:
-    st.metric("Łączny czas jazdy", f"{total_h} h {total_min} min")
+    st.metric(t("total_time"), f"{total_h} h {total_min} min")
 with c4:
-    st.metric("Unikalne stacje", f"{metrics['unique_stations']}")
+    st.metric(t("unique_stations"), f"{metrics['unique_stations']}")
 
 # --- Overview: Row 2 ---
 avg_s = metrics["avg_duration_s"]
@@ -325,69 +347,69 @@ date_range = f'{metrics["date_min"].strftime("%d.%m.%Y")} — {metrics["date_max
 
 c5, c6, c7, c8 = st.columns(4)
 with c5:
-    st.metric("Śr. czas przejazdu", f"{avg_min} min {avg_sec} s")
+    st.metric(t("avg_time"), f"{avg_min} min {avg_sec} s")
 with c6:
-    st.metric("Śr. dystans", f"{avg_dist:.1f} km")
+    st.metric(t("avg_distance"), f"{avg_dist:.1f} km")
 with c7:
-    st.metric("Dni z przejazdem", f"{metrics['days_with_trips']}")
+    st.metric(t("days_with_trip"), f"{metrics['days_with_trips']}")
 with c8:
-    st.metric("Zakres dat", date_range)
+    st.metric(t("date_range"), date_range)
 
 # --- Frequency chart ---
 st.markdown("---")
-st.subheader("Częstotliwość przejazdów")
-freq_options = {"Dni": "day", "Tygodnie": "week", "Miesiące": "month"}
+st.subheader(t("trip_frequency"))
+freq_options = {t("days"): "day", t("weeks"): "week", t("months"): "month"}
 freq_label = st.radio(
-    "Grupuj po:",
+    "Group by:" if lang == "en" else "Grupuj po:",
     list(freq_options.keys()),
     index=2,
     horizontal=True,
     label_visibility="collapsed",
 )
 freq_df = compute_frequency(df, freq_options[freq_label])
-st.plotly_chart(build_frequency_chart(freq_df), use_container_width=True, config={"staticPlot": True})
+st.plotly_chart(build_frequency_chart(freq_df, lang=lang), use_container_width=True, config={"staticPlot": True})
 
 # --- Duration histogram ---
 st.markdown("---")
-st.subheader("Rozkład czasu podróży")
+st.subheader(t("trip_duration_dist"))
 durations_min = compute_duration_bins(df)
-st.plotly_chart(build_duration_histogram(durations_min), use_container_width=True, config={"staticPlot": True})
+st.plotly_chart(build_duration_histogram(durations_min, lang=lang), use_container_width=True, config={"staticPlot": True})
 
 # --- Day-hour heatmap ---
 st.markdown("---")
-st.subheader("Kiedy jeździsz?")
+st.subheader(t("when_do_you_ride"))
 matrix = compute_day_hour_matrix(df)
-st.plotly_chart(build_day_hour_heatmap(matrix), use_container_width=True, config={"staticPlot": True})
+st.plotly_chart(build_day_hour_heatmap(matrix, lang=lang), use_container_width=True, config={"staticPlot": True})
 
 # --- Heatmap map ---
 st.markdown("---")
-st.subheader("Mapa stacji")
+st.subheader(t("station_map"))
 map_mode_label = st.radio(
-    "Pokaż:",
-    ["Wszystkie", "Stacje startowe", "Stacje końcowe"],
+    "Show:" if lang == "en" else "Pokaż:",
+    [t("all_stations"), t("start_stations"), t("end_stations")],
     horizontal=True,
     label_visibility="collapsed",
 )
-map_mode_map = {"Wszystkie": "all", "Stacje startowe": "start", "Stacje końcowe": "end"}
+map_mode_map = {t("all_stations"): "all", t("start_stations"): "start", t("end_stations"): "end"}
 map_mode = map_mode_map[map_mode_label]
 station_map = build_station_heatmap(df, mode=map_mode)
 st_folium(station_map, height=500, use_container_width=True, returned_objects=[])
 
 # --- Top stations ---
 st.markdown("---")
-st.subheader("Najczęściej odwiedzane stacje")
+st.subheader(t("top_stations"))
 station_df = compute_station_stats(df)
 top_n = min(10, len(station_df))
 top_stations = station_df.head(top_n)
 
-st.plotly_chart(build_top_stations_chart(station_df, n=top_n), use_container_width=True, config={"staticPlot": True})
+st.plotly_chart(build_top_stations_chart(station_df, n=top_n, lang=lang), use_container_width=True, config={"staticPlot": True})
 
 col_radio, col_map = st.columns([2, 5])
 with col_radio:
     station_options = [f"#{i+1} {top_stations.iloc[i]['code']}" for i in range(top_n)]
     st.markdown('<div class="station-radio">', unsafe_allow_html=True)
     selected_station = st.radio(
-        "Wybierz stację",
+        t("select_station"),
         station_options,
         index=None,
         label_visibility="collapsed",
@@ -397,12 +419,12 @@ with col_map:
     selected_idx = None
     if selected_station is not None:
         selected_idx = station_options.index(selected_station)
-    top_map = build_top_stations_map(top_stations, selected_index=selected_idx)
+    top_map = build_top_stations_map(top_stations, selected_index=selected_idx, lang=lang)
     st_folium(top_map, height=400, use_container_width=True, returned_objects=[])
 
 # --- Fun stats ---
 st.markdown("---")
-st.subheader("Ciekawostki")
+st.subheader(t("fun_stats"))
 fun = compute_fun_stats(df, distances)
 
 
@@ -425,81 +447,75 @@ def fun_card(emoji, value, label, tooltip=None):
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown("**Ekologia**", unsafe_allow_html=True)
+    st.markdown(f"**{t('ecology')}**", unsafe_allow_html=True)
     st.markdown(
         fun_card(
-            "🌿", f"{fun['environmental']['co2_saved_kg']} kg", "CO₂ zaoszczędzone",
-            tooltip=(
-                f"Obliczono na podstawie {fun['environmental']['total_distance_km']} km przejechanych rowerem "
-                f"zamiast samochodem. Przyjęto średnią emisję samochodu: 120 g CO₂/km."
-            ),
+            "🌿", f"{fun['environmental']['co2_saved_kg']} kg", t("co2_saved"),
+            tooltip=t("co2_tooltip").format(km=fun['environmental']['total_distance_km']),
         ),
         unsafe_allow_html=True,
     )
     st.markdown(
         fun_card(
-            "⛽", f"{fun['environmental']['fuel_saved_liters']} l", "Paliwa zaoszczędzonego",
-            tooltip=(
-                f"Obliczono na podstawie {fun['environmental']['total_distance_km']} km. "
-                f"Przyjęto średnie spalanie samochodu: 7 l/100 km."
-            ),
+            "⛽", f"{fun['environmental']['fuel_saved_liters']} l", t("fuel_saved"),
+            tooltip=t("fuel_tooltip").format(km=fun['environmental']['total_distance_km']),
         ),
         unsafe_allow_html=True,
     )
     # Calories with weight slider
-    st.markdown("**Kalorie**", unsafe_allow_html=True)
-    weight_kg = st.slider("Twoja waga (kg)", 40, 150, 75, key="weight_slider")
+    st.markdown(f"**{t('calories_label')}**", unsafe_allow_html=True)
+    weight_kg = st.slider(t("weight_slider"), 40, 150, 75, key="weight_slider")
     total_hours = metrics["total_duration_s"] / 3600.0
     calories = round(6.8 * weight_kg * total_hours)
     st.markdown(
         fun_card(
-            "🔥", f"{calories} kcal", "Spalonych kalorii",
-            tooltip=f"Obliczono na podstawie MET=6.8 (umiarkowana jazda na rowerze) × {weight_kg} kg × {total_hours:.1f} h jazdy.",
+            "🔥", f"{calories} kcal", t("calories_burned"),
+            tooltip=t("calories_tooltip").format(w=weight_kg, h=f"{total_hours:.1f}"),
         ),
         unsafe_allow_html=True,
     )
 
 with col2:
-    st.markdown("**Rekordy**", unsafe_allow_html=True)
+    st.markdown(f"**{t('records')}**", unsafe_allow_html=True)
     longest_min = fun["records"]["longest_trip_duration_s"] / 60
     st.markdown(
         fun_card(
             "⏱️", f"{longest_min:.0f} min",
-            f"Najdłuższa podróż ({fun['records']['longest_trip_start']} → {fun['records']['longest_trip_end']})",
+            f"{t('longest_trip')} ({fun['records']['longest_trip_start']} → {fun['records']['longest_trip_end']})",
         ),
         unsafe_allow_html=True,
     )
     st.markdown(
         fun_card(
             "📅", f"{fun['records']['most_trips_in_day_count']}",
-            f"Podróży w jeden dzień ({fun['records']['most_trips_in_day_date']})",
+            f"{t('trips_in_one_day')} ({fun['records']['most_trips_in_day_date']})",
         ),
         unsafe_allow_html=True,
     )
     st.markdown(
-        fun_card("🔥", f"{fun['records']['longest_streak_days']} dni", f"Najdłuższa seria ({fun['records']['longest_streak_range']})"),
+        fun_card("🔥", f"{fun['records']['longest_streak_days']} {t('days_unit')}", f"{t('longest_streak')} ({fun['records']['longest_streak_range']})"),
         unsafe_allow_html=True,
     )
 with col3:
-    st.markdown("**Kamienie milowe**", unsafe_allow_html=True)
+    st.markdown(f"**{t('milestones')}**", unsafe_allow_html=True)
     st.markdown(
-        fun_card("🎉", fun["milestones"]["first_trip_date"].strftime("%d.%m.%Y"), "Pierwsza podróż"),
+        fun_card("🎉", fun["milestones"]["first_trip_date"].strftime("%d.%m.%Y"), t("first_trip")),
         unsafe_allow_html=True,
     )
     if fun["milestones"]["hundredth_trip_date"]:
         st.markdown(
-            fun_card("💯", fun["milestones"]["hundredth_trip_date"].strftime("%d.%m.%Y"), "Setna podróż"),
+            fun_card("💯", fun["milestones"]["hundredth_trip_date"].strftime("%d.%m.%Y"), t("hundredth_trip")),
             unsafe_allow_html=True,
         )
     st.markdown(
-        fun_card("📊", fun["milestones"]["busiest_month"], "Najbardziej aktywny miesiąc"),
+        fun_card("📊", fun["milestones"]["busiest_month"], t("busiest_month")),
         unsafe_allow_html=True,
     )
     st.markdown(
         fun_card(
             "📅",
             f"{fun['milestones']['most_active_week']}",
-            f"Najbardziej aktywny tydzień ({fun['milestones']['most_active_week_count']} przejazdów)",
+            f"{t('busiest_week')} ({fun['milestones']['most_active_week_count']} {t('trips_unit')})",
         ),
         unsafe_allow_html=True,
     )
@@ -507,7 +523,8 @@ with col3:
 # --- Footer ---
 st.markdown("---")
 st.caption(
-    "⚠️ Dystans jest szacunkowy (odległość w linii prostej × 1,3). "
-    f"Pominięto {metrics['null_end_count']} podróży bez stacji końcowej i {metrics['null_start_count']} bez stacji początkowej w obliczeniach dystansu. "
-    "Dane pochodzą z eksportu aplikacji Mevo."
+    t("footer_disclaimer").format(
+        null_end=metrics['null_end_count'],
+        null_start=metrics['null_start_count'],
+    )
 )
