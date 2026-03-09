@@ -19,7 +19,7 @@ from data_processing import (
     parse_zip,
 )
 
-st.set_page_config(page_title="Mevo w Liczbach", layout="wide", page_icon="🚲")
+st.set_page_config(page_title="Mevo Wrapped", layout="wide", page_icon="🚲")
 
 st.markdown(
     """
@@ -101,8 +101,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title("Mevo w Liczbach")
-st.caption("Analiza Twoich podróży rowerem miejskim")
+st.title("Mevo Wrapped")
 
 uploaded = st.file_uploader("Wgraj plik mevo.zip", type="zip")
 if uploaded is None:
@@ -335,19 +334,19 @@ with col3:
         unsafe_allow_html=True,
     )
 
-    # Calories with weight slider
-    st.markdown("**Kalorie**", unsafe_allow_html=True)
-    weight_kg = st.slider("Twoja waga (kg)", 40, 150, 75, key="weight_slider")
-    # MET ~6.8 for moderate cycling, kcal/h = MET * weight
-    total_hours = metrics["total_duration_s"] / 3600.0
-    calories = round(6.8 * weight_kg * total_hours)
-    st.markdown(
-        fun_card(
-            "🔥", f"{calories} kcal", "Spalonych kalorii",
-            tooltip=f"Obliczono na podstawie MET=6.8 (umiarkowana jazda na rowerze) × {weight_kg} kg × {total_hours:.1f} h jazdy.",
-        ),
-        unsafe_allow_html=True,
-    )
+# Calories with weight slider
+st.markdown("**Kalorie**", unsafe_allow_html=True)
+weight_kg = st.slider("Twoja waga (kg)", 40, 150, 75, key="weight_slider")
+# MET ~6.8 for moderate cycling, kcal/h = MET * weight
+total_hours = metrics["total_duration_s"] / 3600.0
+calories = round(6.8 * weight_kg * total_hours)
+st.markdown(
+    fun_card(
+        "🔥", f"{calories} kcal", "Spalonych kalorii",
+        tooltip=f"Obliczono na podstawie MET=6.8 (umiarkowana jazda na rowerze) × {weight_kg} kg × {total_hours:.1f} h jazdy.",
+    ),
+    unsafe_allow_html=True,
+)
 
 # --- Footer ---
 st.markdown("---")
