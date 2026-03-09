@@ -408,7 +408,7 @@ st.plotly_chart(build_duration_histogram(durations_min), use_container_width=Tru
 
 # --- Day-hour heatmap ---
 st.markdown("---")
-st.subheader("Kiedy jeździsz?")
+st.subheader("Kiedy jeździsz? - przesunięte o -2h, naprawię wieczorem :)")
 matrix = compute_day_hour_matrix(df)
 st.plotly_chart(build_day_hour_heatmap(matrix), use_container_width=True, config={"staticPlot": True})
 
