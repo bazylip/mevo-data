@@ -231,8 +231,8 @@ card_component_html = f"""
   .stat .lbl {{ font-size: 0.8rem; color: #888; margin-top: 2px; }}
   .heatmap-section {{ flex: 1; display: flex; flex-direction: column; justify-content: center; }}
   .heatmap-title {{ font-size: 0.85rem; font-weight: 600; color: #555; margin-bottom: 8px; text-align: center; }}
-  .heatmap-wrap {{ position: relative; padding-left: 30px; margin: 0 auto; width: fit-content; }}
-  .heatmap-wrap .month-lbl {{ position: absolute; left: 0; font-size: 0.65rem; color: #999; font-weight: 600; line-height: {CELL_PX}px; }}
+  .heatmap-wrap {{ position: relative; padding-left: 15px; margin: 0 auto; width: fit-content; }}
+  .heatmap-wrap .month-lbl {{ position: absolute; left: -15px; font-size: 0.65rem; color: #999; font-weight: 600; line-height: {CELL_PX}px; }}
   .heatmap-grid {{ display: grid; grid-template-columns: repeat({HEATMAP_COLS}, {CELL_PX}px); gap: {GAP_PX}px; }}
   .heatmap-grid .cell {{ width: {CELL_PX}px; height: {CELL_PX}px; border-radius: 2px; }}
   .footer {{ text-align: center; margin-top: 20px; }}
