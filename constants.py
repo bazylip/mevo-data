@@ -44,16 +44,19 @@ MONTH_NAMES_PL_SHORT = {
 }
 
 COLOR_PALETTE = {
-    "primary": "#00D4FF",
-    "accent": "#FF0080",
+    "primary": "#F15B4E",
+    "accent": "#0B163F",
+    "navy": "#0B163F",
     "warm": "#FF6B35",
     "green": "#00E676",
     "purple": "#B388FF",
 }
 
+CORAL_RAMP = ["#FFFFFF", "#FDE8E6", "#F9A8A0", "#F15B4E"]
+
 PLOTLY_LAYOUT_DEFAULTS = {
     "paper_bgcolor": "rgba(0,0,0,0)",
     "plot_bgcolor": "rgba(0,0,0,0)",
-    "font": {"color": "#FAFAFA"},
+    "font": {"color": "#1A1A2E"},
     "margin": {"l": 40, "r": 20, "t": 40, "b": 40},
 }

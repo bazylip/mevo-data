@@ -7,6 +7,7 @@ from charts import (
     build_frequency_chart,
     build_station_heatmap,
     build_top_stations_chart,
+    build_top_stations_map,
 )
 from data_processing import (
     compute_activity_heatmap,
@@ -26,21 +27,21 @@ st.markdown(
     """
     <style>
     .fun-card {
-        background: linear-gradient(135deg, #1A1D23, #252830);
+        background: #F0F0F0;
         border-radius: 12px;
         padding: 16px;
-        border: 1px solid #333;
+        border: 1px solid #E0E0E0;
         margin-bottom: 12px;
     }
     .fun-card .emoji { font-size: 1.5rem; }
     .fun-card .value {
         font-size: 1.5rem;
         font-weight: 700;
-        color: #00D4FF;
+        color: #F15B4E;
     }
     .fun-card .label {
         font-size: 0.85rem;
-        color: #999;
+        color: #777;
     }
     .tooltip-card {
         position: relative;
@@ -48,12 +49,12 @@ st.markdown(
     }
     .tooltip-card .tooltip-text {
         visibility: hidden;
-        background-color: #252830;
-        color: #ccc;
+        background-color: #ffffff;
+        color: #444;
         text-align: left;
         border-radius: 8px;
         padding: 8px 12px;
-        border: 1px solid #444;
+        border: 1px solid #ddd;
         position: absolute;
         z-index: 10;
         bottom: 105%;
@@ -66,36 +67,15 @@ st.markdown(
     .tooltip-card:hover .tooltip-text {
         visibility: visible;
     }
-    .station-item {
-        background: linear-gradient(135deg, #1A1D23, #252830);
-        border-radius: 10px;
-        padding: 12px 16px;
-        border: 1px solid #333;
-        margin-bottom: 8px;
-        cursor: pointer;
+    h2, h3 {
+        color: #0B163F !important;
     }
-    .station-item .rank {
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: #00D4FF;
-        margin-right: 12px;
+    .station-radio [role="radiogroup"] {
+        gap: 0.15rem;
     }
-    .station-item .code {
-        font-weight: 600;
-        color: #FAFAFA;
-        font-size: 1rem;
-    }
-    .station-item .count {
-        color: #00D4FF;
-        font-weight: 600;
-    }
-    .station-item .address {
-        color: #888;
-        font-size: 0.85rem;
-    }
-    div[data-baseweb="popover"] > div {
-        min-width: 520px !important;
-        max-width: 560px !important;
+    .station-radio [role="radiogroup"] label {
+        padding: 0.55rem 0.75rem !important;
+        font-size: 0.95rem;
     }
     </style>
     """,
@@ -151,7 +131,7 @@ total_h_card = int(total_s_card // 3600)
 total_min_card = int((total_s_card % 3600) // 60)
 
 # Build heatmap grid HTML
-HEAT_RAMP = ["#e8e9ef", "#a8adc6", "#6872a0", "#2d3a6b", "#0B163F"]
+HEAT_RAMP = ["#F0F0F0", "#FDE8E6", "#F9A8A0", "#F67D73", "#F15B4E"]
 
 
 def _heatmap_color(count):
@@ -299,7 +279,7 @@ card_component_html = f"""
 </html>
 """
 
-components.html(card_component_html, height=860)
+components.html(card_component_html, height=810)
 
 # --- Overview: Row 1 ---
 st.markdown("---")
@@ -353,16 +333,29 @@ freq_label = st.radio(
 freq_df = compute_frequency(df, freq_options[freq_label])
 st.plotly_chart(build_frequency_chart(freq_df), use_container_width=True, config={"staticPlot": True})
 
+# --- Duration histogram ---
+st.markdown("---")
+st.subheader("Rozkład czasu podróży")
+durations_min = compute_duration_bins(df)
+st.plotly_chart(build_duration_histogram(durations_min), use_container_width=True, config={"staticPlot": True})
+
+# --- Day-hour heatmap ---
+st.markdown("---")
+st.subheader("Kiedy jeździsz?")
+matrix = compute_day_hour_matrix(df)
+st.plotly_chart(build_day_hour_heatmap(matrix), use_container_width=True, config={"staticPlot": True})
+
 # --- Heatmap map ---
 st.markdown("---")
 st.subheader("Mapa stacji")
 map_mode_label = st.radio(
     "Pokaż:",
-    ["Stacje startowe", "Stacje końcowe"],
+    ["Wszystkie", "Stacje startowe", "Stacje końcowe"],
     horizontal=True,
     label_visibility="collapsed",
 )
-map_mode = "start" if map_mode_label == "Stacje startowe" else "end"
+map_mode_map = {"Wszystkie": "all", "Stacje startowe": "start", "Stacje końcowe": "end"}
+map_mode = map_mode_map[map_mode_label]
 station_map = build_station_heatmap(df, mode=map_mode)
 st_folium(station_map, height=500, use_container_width=True, returned_objects=[])
 
@@ -375,42 +368,23 @@ top_stations = station_df.head(top_n)
 
 st.plotly_chart(build_top_stations_chart(station_df, n=top_n), use_container_width=True, config={"staticPlot": True})
 
-cols_per_row = 5
-rows_needed = (top_n + cols_per_row - 1) // cols_per_row
-for row_idx in range(rows_needed):
-    cols = st.columns(cols_per_row)
-    for col_idx in range(cols_per_row):
-        i = row_idx * cols_per_row + col_idx
-        if i >= top_n:
-            break
-        stn = top_stations.iloc[i]
-        with cols[col_idx]:
-            with st.popover(f"**#{i+1}** {stn['code']}"):
-                st.markdown(f"**{stn['code']}**")
-                st.markdown(f"{stn['address']}")
-                st.markdown(f"Starty: **{int(stn['start_count'])}** | Końce: **{int(stn['end_count'])}** | Łącznie: **{int(stn['total_count'])}**")
-                mini_map = __import__("folium").Map(
-                    location=[stn["lat"], stn["lng"]],
-                    zoom_start=13,
-                    tiles="CartoDB positron",
-                )
-                __import__("folium").Marker(
-                    location=[stn["lat"], stn["lng"]],
-                    popup=stn["code"],
-                ).add_to(mini_map)
-                st_folium(mini_map, height=400, width=460, returned_objects=[])
-
-# --- Duration histogram ---
-st.markdown("---")
-st.subheader("Rozkład czasu podróży")
-durations_min = compute_duration_bins(df)
-st.plotly_chart(build_duration_histogram(durations_min), use_container_width=True, config={"staticPlot": True})
-
-# --- Day-hour heatmap ---
-st.markdown("---")
-st.subheader("Kiedy jeździsz? - przesunięte o -2h, naprawię wieczorem :)")
-matrix = compute_day_hour_matrix(df)
-st.plotly_chart(build_day_hour_heatmap(matrix), use_container_width=True, config={"staticPlot": True})
+col_radio, col_map = st.columns([2, 5])
+with col_radio:
+    station_options = [f"#{i+1} {top_stations.iloc[i]['code']}" for i in range(top_n)]
+    st.markdown('<div class="station-radio">', unsafe_allow_html=True)
+    selected_station = st.radio(
+        "Wybierz stację",
+        station_options,
+        index=None,
+        label_visibility="collapsed",
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+with col_map:
+    selected_idx = None
+    if selected_station is not None:
+        selected_idx = station_options.index(selected_station)
+    top_map = build_top_stations_map(top_stations, selected_index=selected_idx)
+    st_folium(top_map, height=400, use_container_width=True, returned_objects=[])
 
 # --- Fun stats ---
 st.markdown("---")
@@ -458,6 +432,18 @@ with col1:
         ),
         unsafe_allow_html=True,
     )
+    # Calories with weight slider
+    st.markdown("**Kalorie**", unsafe_allow_html=True)
+    weight_kg = st.slider("Twoja waga (kg)", 40, 150, 75, key="weight_slider")
+    total_hours = metrics["total_duration_s"] / 3600.0
+    calories = round(6.8 * weight_kg * total_hours)
+    st.markdown(
+        fun_card(
+            "🔥", f"{calories} kcal", "Spalonych kalorii",
+            tooltip=f"Obliczono na podstawie MET=6.8 (umiarkowana jazda na rowerze) × {weight_kg} kg × {total_hours:.1f} h jazdy.",
+        ),
+        unsafe_allow_html=True,
+    )
 
 with col2:
     st.markdown("**Rekordy**", unsafe_allow_html=True)
@@ -477,7 +463,7 @@ with col2:
         unsafe_allow_html=True,
     )
     st.markdown(
-        fun_card("🔥", f"{fun['records']['longest_streak_days']} dni", "Najdłuższa seria"),
+        fun_card("🔥", f"{fun['records']['longest_streak_days']} dni", f"Najdłuższa seria ({fun['records']['longest_streak_range']})"),
         unsafe_allow_html=True,
     )
 with col3:
@@ -503,20 +489,6 @@ with col3:
         ),
         unsafe_allow_html=True,
     )
-
-# Calories with weight slider
-st.markdown("**Kalorie**", unsafe_allow_html=True)
-weight_kg = st.slider("Twoja waga (kg)", 40, 150, 75, key="weight_slider")
-# MET ~6.8 for moderate cycling, kcal/h = MET * weight
-total_hours = metrics["total_duration_s"] / 3600.0
-calories = round(6.8 * weight_kg * total_hours)
-st.markdown(
-    fun_card(
-        "🔥", f"{calories} kcal", "Spalonych kalorii",
-        tooltip=f"Obliczono na podstawie MET=6.8 (umiarkowana jazda na rowerze) × {weight_kg} kg × {total_hours:.1f} h jazdy.",
-    ),
-    unsafe_allow_html=True,
-)
 
 # --- Footer ---
 st.markdown("---")

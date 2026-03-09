@@ -21,8 +21,8 @@ def parse_zip(uploaded_file) -> pd.DataFrame:
         end = t["_endStation"]
         row = {
             "trip_id": t["_id"],
-            "started_at": pd.to_datetime(t["_tripStarted"], utc=True).tz_convert(None),
-            "ended_at": pd.to_datetime(t["_tripEnded"], utc=True).tz_convert(None),
+            "started_at": pd.to_datetime(t["_tripStarted"], utc=True).tz_convert("Europe/Warsaw").tz_localize(None),
+            "ended_at": pd.to_datetime(t["_tripEnded"], utc=True).tz_convert("Europe/Warsaw").tz_localize(None),
             "duration_s": t["_tripDuration"],
         }
         if start is not None:
@@ -161,7 +161,7 @@ def compute_frequency(df, freq="month"):
         grouped.columns = ["period", "trips"]
         grouped["period"] = pd.to_datetime(grouped["period"])
         # Fill missing days
-        all_days = pd.date_range(grouped["period"].min(), grouped["period"].max(), freq="D")
+        all_days = pd.date_range(grouped["period"].min(), pd.Timestamp.today().normalize(), freq="D")
         full = pd.DataFrame({"period": all_days})
         full = full.merge(grouped, on="period", how="left").fillna(0)
         full["trips"] = full["trips"].astype(int)
@@ -173,7 +173,7 @@ def compute_frequency(df, freq="month"):
         grouped = df_copy.groupby("week_start").size().reset_index(name="trips")
         grouped.columns = ["period", "trips"]
         # Fill missing weeks
-        all_weeks = pd.date_range(grouped["period"].min(), grouped["period"].max(), freq="W-MON")
+        all_weeks = pd.date_range(grouped["period"].min(), pd.Timestamp.today().normalize(), freq="W-MON")
         full = pd.DataFrame({"period": all_weeks})
         full = full.merge(grouped, on="period", how="left").fillna(0)
         full["trips"] = full["trips"].astype(int)
@@ -182,7 +182,7 @@ def compute_frequency(df, freq="month"):
     else:  # month
         monthly = df.groupby("year_month").size().reset_index(name="trips")
         start = df["started_at"].min().to_period("M")
-        end = df["started_at"].max().to_period("M")
+        end = pd.Timestamp.today().to_period("M")
         all_months = pd.period_range(start, end, freq="M").astype(str)
         full = pd.DataFrame({"year_month": all_months})
         full = full.merge(monthly, on="year_month", how="left").fillna(0)
@@ -261,12 +261,19 @@ def compute_fun_stats(df, distances):
     unique_dates = sorted(df["date"].unique())
     max_streak = 1
     current_streak = 1
+    streak_end = unique_dates[0]
+    best_streak_end = unique_dates[0]
     for i in range(1, len(unique_dates)):
         if (unique_dates[i] - unique_dates[i - 1]).days == 1:
             current_streak += 1
-            max_streak = max(max_streak, current_streak)
+            streak_end = unique_dates[i]
+            if current_streak > max_streak:
+                max_streak = current_streak
+                best_streak_end = streak_end
         else:
             current_streak = 1
+            streak_end = unique_dates[i]
+    best_streak_start = best_streak_end - timedelta(days=max_streak - 1)
 
     # Favorite station
     all_stations = pd.concat([
@@ -285,7 +292,10 @@ def compute_fun_stats(df, distances):
     first_trip_date = df_sorted.iloc[0]["started_at"]
     hundredth_trip_date = df_sorted.iloc[99]["started_at"] if len(df_sorted) >= 100 else None
 
-    busiest_month = df.groupby("year_month").size().idxmax()
+    busiest_month_raw = df.groupby("year_month").size().idxmax()
+    # Format as MM.YYYY
+    bm_period = pd.Period(busiest_month_raw, freq="M")
+    busiest_month = f"{bm_period.month:02d}.{bm_period.year}"
 
     # Most active week — return date range instead of week number
     df_copy = df.copy()
@@ -311,6 +321,7 @@ def compute_fun_stats(df, distances):
             "most_trips_in_day_date": str(most_trips_day),
             "most_trips_in_day_count": int(most_trips_count),
             "longest_streak_days": max_streak,
+            "longest_streak_range": f"{best_streak_start.strftime('%d.%m.%Y')} — {best_streak_end.strftime('%d.%m.%Y')}",
             "favorite_station_code": fav_row["code"],
             "favorite_station_address": fav_row["address"],
             "favorite_station_count": int(fav_row["count"]),
