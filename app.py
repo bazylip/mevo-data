@@ -177,7 +177,7 @@ for week in heatmap_data["weeks"]:
         heatmap_cells += f'<div class="cell" style="background:{color};"></div>'
         day_index += 1
 
-share_text = f"Przejechałem {total_km_card:.1f} km na Mevo! Sprawdź swoje wyniki na mevo-wrapped.streamlit.app"
+share_text = f"Mam na koncie {total_km_card:.1f} km na Mevo! Sprawdź swoje wyniki na mevo-wrapped.streamlit.app"
 
 import streamlit.components.v1 as components
 
@@ -222,9 +222,7 @@ card_component_html = f"""
     border: none; border-radius: 8px; padding: 10px 24px;
     font-size: 0.9rem; cursor: pointer; font-weight: 600;
   }}
-  .btn-dl {{ background: #0B163F; color: white; }}
-  .btn-share {{ background: #F15B4E; color: white; }}
-  .btn-dl:hover {{ opacity: 0.85; }}
+  .btn-share {{ background: #F15B4E; color: white; transition: background 0.2s; }}
   .btn-share:hover {{ opacity: 0.85; }}
 </style>
 </head>
@@ -250,29 +248,46 @@ card_component_html = f"""
     <div class="footer"><span>mevo-wrapped.streamlit.app</span></div>
   </div>
   <div class="buttons">
-    <button class="btn-dl" onclick="downloadCard()">Pobierz</button>
     <button class="btn-share" onclick="shareCard()">Udostępnij</button>
   </div>
   <script>
-    function downloadCard() {{
+    function shareCard() {{
+      var btn = document.querySelector('.btn-share');
+      var shareText = '{share_text}';
+      var shareUrl = 'https://mevo-wrapped.streamlit.app';
+      btn.disabled = true;
       html2canvas(document.getElementById('card'), {{scale: 3, backgroundColor: null, useCORS: true}}).then(function(canvas) {{
-        var link = document.createElement('a');
-        link.download = 'mevo-wrapped.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+        canvas.toBlob(function(blob) {{
+          var file = new File([blob], 'mevo-wrapped.png', {{type: 'image/png'}});
+          if (navigator.canShare && navigator.canShare({{files: [file]}})) {{
+            navigator.share({{files: [file], text: shareText, url: shareUrl}}).catch(function(){{}}).finally(function() {{
+              btn.disabled = false;
+            }});
+          }} else if (typeof ClipboardItem !== 'undefined') {{
+            navigator.clipboard.write([new ClipboardItem({{'image/png': blob}})])
+              .then(function() {{ showCopied(btn); }})
+              .catch(function() {{ fallbackDownload(canvas, btn); }});
+          }} else {{
+            fallbackDownload(canvas, btn);
+          }}
+        }}, 'image/png');
       }});
     }}
-    function shareCard() {{
-      var text = '{share_text}';
-      if (navigator.share) {{
-        navigator.share({{title: 'Mevo Wrapped', text: text, url: 'https://mevo-wrapped.streamlit.app'}}).catch(function(){{}});
-      }} else {{
-        navigator.clipboard.writeText(text).then(function() {{
-          var btn = document.querySelector('.btn-share');
-          btn.textContent = 'Skopiowano!';
-          setTimeout(function() {{ btn.textContent = 'Udostępnij'; }}, 2000);
-        }});
-      }}
+    function showCopied(btn) {{
+      btn.textContent = 'Skopiowano!';
+      btn.style.background = '#22c55e';
+      btn.disabled = false;
+      setTimeout(function() {{
+        btn.textContent = 'Udostępnij';
+        btn.style.background = '#F15B4E';
+      }}, 2000);
+    }}
+    function fallbackDownload(canvas, btn) {{
+      var link = document.createElement('a');
+      link.download = 'mevo-wrapped.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      showCopied(btn);
     }}
   </script>
 </body>
