@@ -156,10 +156,6 @@ def build_top_stations_map(top_stations_df, selected_index=None):
 
 
 def build_frequency_chart(freq_df):
-    n_labels = len(freq_df)
-    # Show ~15 tick labels max to avoid cramping
-    dtick = max(1, n_labels // 15)
-
     fig = go.Figure(
         data=go.Bar(
             x=freq_df["label"],
@@ -173,7 +169,7 @@ def build_frequency_chart(freq_df):
             xaxis_title="",
             yaxis_title="Liczba podróży",
             height=350,
-            xaxis={"tickangle": -45, "dtick": dtick},
+            xaxis={"tickangle": -45, "nticks": 15},
         )
     )
     return fig
