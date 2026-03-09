@@ -97,11 +97,10 @@ else:
             "#### Jak pobrać dane?\n"
             '1. Wejdź na <a href="https://rowermevo.pl" target="_blank">rowermevo.pl</a>\n'
             "2. Nie pobieraj aplikacji, zamiast tego zaloguj się bezpośrednio na stronie\n"
-            "3. Kliknij **Profil** (prawy górny róg)\n"
-            "4. Przewiń w dół do sekcji **Twoje dane**\n"
-            "5. Kliknij **Tworzenie plików JSON** aby wygenerować dane\n"
-            "6. Pobierz archiwum ZIP z danymi\n"
-            "7. Wgraj pobrany plik ZIP powyżej",
+            "3. Przewiń w dół do sekcji **Twoje dane**\n"
+            "4. Kliknij **Tworzenie plików JSON** aby wygenerować dane\n"
+            "5. Pobierz archiwum ZIP z danymi\n"
+            "6. Wgraj pobrany plik ZIP powyżej",
             unsafe_allow_html=True,
         )
         st.stop()
