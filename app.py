@@ -9,7 +9,7 @@ from charts import (
     build_top_stations_chart,
     build_top_stations_map,
 )
-from constants import MONTH_NAMES_SHORT, TRANSLATIONS
+from constants import FEEDBACK_URL, MONTH_NAMES_SHORT, TRANSLATIONS
 from data_processing import (
     compute_activity_heatmap,
     compute_day_hour_matrix,
@@ -88,8 +88,40 @@ st.markdown(
         padding: 0.55rem 0.75rem !important;
         font-size: 0.95rem;
     }
+    .feedback-fab {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 9999;
+        background: #2ecc71;
+        color: #fff !important;
+        text-decoration: none !important;
+        padding: 10px 20px;
+        border-radius: 999px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        transition: background 0.2s, transform 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .feedback-fab:hover {
+        background: #27ae60;
+        transform: translateY(-2px);
+    }
+    @media (max-width: 480px) {
+        .feedback-fab .feedback-text { display: none; }
+        .feedback-fab { padding: 10px 14px; }
+    }
     </style>
     """,
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    f'<a href="{FEEDBACK_URL}" target="_blank" class="feedback-fab">'
+    f'💬 <span class="feedback-text">{t("feedback_button")}</span></a>',
     unsafe_allow_html=True,
 )
 

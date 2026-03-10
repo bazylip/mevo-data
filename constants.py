@@ -1,3 +1,4 @@
+FEEDBACK_URL = "https://forms.gle/Nu9awcianscEcfW57"
 DISTANCE_FACTOR = 1.3
 CO2_PER_KM_CAR = 120  # grams
 FUEL_PER_KM = 0.07  # liters
@@ -134,6 +135,8 @@ TRANSLATIONS = {
     "busiest_month": {"pl": "Najbardziej aktywny miesiąc", "en": "Busiest month"},
     "busiest_week": {"pl": "Najbardziej aktywny tydzień", "en": "Busiest week"},
     "trips_unit": {"pl": "przejazdów", "en": "trips"},
+    # Feedback
+    "feedback_button": {"pl": "Podziel się opinią", "en": "Share feedback"},
     # Footer
     "footer_disclaimer": {
         "pl": "⚠️ Dystans jest szacunkowy (odległość w linii prostej × 1,3). "
