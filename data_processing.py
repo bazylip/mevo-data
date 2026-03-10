@@ -9,11 +9,13 @@ import pandas as pd
 from constants import CO2_PER_KM_CAR, DISTANCE_FACTOR, FUEL_PER_KM, MONTH_NAMES_PL_SHORT, MONTH_NAMES_SHORT
 
 
-def parse_zip(uploaded_file) -> pd.DataFrame:
+def parse_zip(uploaded_file) -> tuple[pd.DataFrame, list]:
     buf = io.BytesIO(uploaded_file.read())
     with zipfile.ZipFile(buf) as z:
         with z.open("trips.json") as f:
             trips = json.load(f)
+        with z.open("orders.json") as f:
+            orders = json.load(f)
 
     rows = []
     for t in trips:
@@ -58,7 +60,32 @@ def parse_zip(uploaded_file) -> pd.DataFrame:
     df["hour"] = df["started_at"].dt.hour
     df["day_of_week"] = df["started_at"].dt.dayofweek  # 0=Mon
     df["year_month"] = df["started_at"].dt.to_period("M").astype(str)
-    return df
+    return df, orders
+
+
+def compute_total_cost(orders_data):
+    total = 0.0
+    subscription_cost = 0.0
+    trip_cost = 0.0
+    order_count = 0
+    for o in orders_data:
+        if o.get("_status") != "completed":
+            continue
+        if o.get("_type") == "wallet_deposit":
+            continue
+        amount = o.get("_amount", 0)
+        total += amount
+        order_count += 1
+        if o.get("_type") == "subscription":
+            subscription_cost += amount
+        elif o.get("_type") == "trip":
+            trip_cost += amount
+    return {
+        "total_cost_pln": round(total, 2),
+        "subscription_cost": round(subscription_cost, 2),
+        "trip_cost": round(trip_cost, 2),
+        "order_count": order_count,
+    }
 
 
 def haversine(lat1, lng1, lat2, lng2):

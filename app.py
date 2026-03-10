@@ -19,6 +19,7 @@ from data_processing import (
     compute_fun_stats,
     compute_overview_metrics,
     compute_station_stats,
+    compute_total_cost,
     parse_zip,
 )
 
@@ -171,9 +172,9 @@ def load_data(file_bytes):
 
 if DEV_MODE:
     from pathlib import Path
-    df = load_data(Path("mevo.zip").read_bytes())
+    df, orders_data = load_data(Path("mevo.zip").read_bytes())
 else:
-    df = load_data(uploaded.read())
+    df, orders_data = load_data(uploaded.read())
 distances = compute_distances(df)
 metrics = compute_overview_metrics(df, distances)
 heatmap_data = compute_activity_heatmap(df, month_names_short=MONTH_NAMES_SHORT[lang])
@@ -476,81 +477,61 @@ def fun_card(emoji, value, label, tooltip=None):
     """
 
 
-col1, col2, col3 = st.columns(3)
+cost = compute_total_cost(orders_data)
 
-with col1:
-    st.markdown(f"**{t('ecology')}**", unsafe_allow_html=True)
-    st.markdown(
-        fun_card(
-            "🌿", f"{fun['environmental']['co2_saved_kg']} kg", t("co2_saved"),
-            tooltip=t("co2_tooltip").format(km=fun['environmental']['total_distance_km']),
-        ),
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        fun_card(
-            "⛽", f"{fun['environmental']['fuel_saved_liters']} l", t("fuel_saved"),
-            tooltip=t("fuel_tooltip").format(km=fun['environmental']['total_distance_km']),
-        ),
-        unsafe_allow_html=True,
-    )
-    # Calories with weight slider
-    st.markdown(f"**{t('calories_label')}**", unsafe_allow_html=True)
-    weight_kg = st.slider(t("weight_slider"), 40, 150, 75, key="weight_slider")
-    total_hours = metrics["total_duration_s"] / 3600.0
-    calories = round(6.8 * weight_kg * total_hours)
-    st.markdown(
-        fun_card(
-            "🔥", f"{calories} kcal", t("calories_burned"),
-            tooltip=t("calories_tooltip").format(w=weight_kg, h=f"{total_hours:.1f}"),
-        ),
-        unsafe_allow_html=True,
-    )
+# Calories with weight slider
+weight_kg = st.slider(t("weight_slider"), 40, 150, 75, key="weight_slider")
+total_hours = metrics["total_duration_s"] / 3600.0
+calories = round(6.8 * weight_kg * total_hours)
 
-with col2:
-    st.markdown(f"**{t('records')}**", unsafe_allow_html=True)
-    longest_min = fun["records"]["longest_trip_duration_s"] / 60
-    st.markdown(
-        fun_card(
-            "⏱️", f"{longest_min:.0f} min",
-            f"{t('longest_trip')} ({fun['records']['longest_trip_start']} → {fun['records']['longest_trip_end']})",
-        ),
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        fun_card(
-            "📅", f"{fun['records']['most_trips_in_day_count']}",
-            f"{t('trips_in_one_day')} ({fun['records']['most_trips_in_day_date']})",
-        ),
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        fun_card("🔥", f"{fun['records']['longest_streak_days']} {t('days_unit')}", f"{t('longest_streak')} ({fun['records']['longest_streak_range']})"),
-        unsafe_allow_html=True,
-    )
-with col3:
-    st.markdown(f"**{t('milestones')}**", unsafe_allow_html=True)
-    st.markdown(
-        fun_card("🎉", fun["milestones"]["first_trip_date"].strftime("%d.%m.%Y"), t("first_trip")),
-        unsafe_allow_html=True,
-    )
-    if fun["milestones"]["hundredth_trip_date"]:
-        st.markdown(
-            fun_card("💯", fun["milestones"]["hundredth_trip_date"].strftime("%d.%m.%Y"), t("hundredth_trip")),
-            unsafe_allow_html=True,
-        )
-    st.markdown(
-        fun_card("📊", fun["milestones"]["busiest_month"], t("busiest_month")),
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        fun_card(
-            "📅",
-            f"{fun['milestones']['most_active_week']}",
-            f"{t('busiest_week')} ({fun['milestones']['most_active_week_count']} {t('trips_unit')})",
-        ),
-        unsafe_allow_html=True,
-    )
+# Build all tiles
+tiles = []
+# Ecology
+tiles.append(fun_card(
+    "🌿", f"{fun['environmental']['co2_saved_kg']} kg", t("co2_saved"),
+    tooltip=t("co2_tooltip").format(km=fun['environmental']['total_distance_km']),
+))
+tiles.append(fun_card(
+    "⛽", f"{fun['environmental']['fuel_saved_liters']} l", t("fuel_saved"),
+    tooltip=t("fuel_tooltip").format(km=fun['environmental']['total_distance_km']),
+))
+tiles.append(fun_card(
+    "🔥", f"{calories} kcal", t("calories_burned"),
+    tooltip=t("calories_tooltip").format(w=weight_kg, h=f"{total_hours:.1f}"),
+))
+# Records
+longest_min = fun["records"]["longest_trip_duration_s"] / 60
+tiles.append(fun_card(
+    "⏱️", f"{longest_min:.0f} min",
+    f"{t('longest_trip')} ({fun['records']['longest_trip_start']} → {fun['records']['longest_trip_end']})",
+))
+tiles.append(fun_card(
+    "📅", f"{fun['records']['most_trips_in_day_count']}",
+    f"{t('trips_in_one_day')} ({fun['records']['most_trips_in_day_date']})",
+))
+tiles.append(fun_card(
+    "🔥", f"{fun['records']['longest_streak_days']} {t('days_unit')}",
+    f"{t('longest_streak')} ({fun['records']['longest_streak_range']})",
+))
+# Milestones
+tiles.append(fun_card("🎉", fun["milestones"]["first_trip_date"].strftime("%d.%m.%Y"), t("first_trip")))
+if fun["milestones"]["hundredth_trip_date"]:
+    tiles.append(fun_card("💯", fun["milestones"]["hundredth_trip_date"].strftime("%d.%m.%Y"), t("hundredth_trip")))
+tiles.append(fun_card("📊", fun["milestones"]["busiest_month"], t("busiest_month")))
+tiles.append(fun_card(
+    "📅", f"{fun['milestones']['most_active_week']}",
+    f"{t('busiest_week')} ({fun['milestones']['most_active_week_count']} {t('trips_unit')})",
+))
+# Cost
+tiles.append(fun_card("💰", f"{cost['total_cost_pln']:.2f} zł", t("total_cost")))
+
+# Render tiles in flat 3-column grid
+for i in range(0, len(tiles), 3):
+    cols = st.columns(3)
+    for j, col in enumerate(cols):
+        if i + j < len(tiles):
+            with col:
+                st.markdown(tiles[i + j], unsafe_allow_html=True)
 
 # --- Footer ---
 st.markdown("---")

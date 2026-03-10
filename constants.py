@@ -116,7 +116,10 @@ TRANSLATIONS = {
         "en": "Calculated based on {km} km. Average car consumption assumed: 7 l/100 km.",
     },
     "calories_label": {"pl": "Kalorie", "en": "Calories"},
-    "weight_slider": {"pl": "Twoja waga (kg)", "en": "Your weight (kg)"},
+    "weight_slider": {
+        "pl": "Twoja waga (kg) — do obliczenia spalonych kalorii",
+        "en": "Your weight (kg) — for calculating burned calories",
+    },
     "calories_burned": {"pl": "Spalonych kalorii", "en": "Calories burned"},
     "calories_tooltip": {
         "pl": "Obliczono na podstawie MET=6.8 (umiarkowana jazda na rowerze) × {w} kg × {h} h jazdy.",
@@ -135,6 +138,7 @@ TRANSLATIONS = {
     "busiest_month": {"pl": "Najbardziej aktywny miesiąc", "en": "Busiest month"},
     "busiest_week": {"pl": "Najbardziej aktywny tydzień", "en": "Busiest week"},
     "trips_unit": {"pl": "przejazdów", "en": "trips"},
+    "total_cost": {"pl": "Łączny koszt", "en": "Total cost"},
     # Feedback
     "feedback_button": {"pl": "Podziel się opinią", "en": "Share feedback"},
     # Footer
