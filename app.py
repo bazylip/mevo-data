@@ -20,6 +20,7 @@ from data_processing import (
     compute_overview_metrics,
     compute_station_stats,
     compute_total_cost,
+    parse_json_files,
     parse_zip,
 )
 
@@ -147,8 +148,8 @@ DEV_MODE = os.environ.get("DEV", "").lower() in ("1", "true")
 if DEV_MODE:
     uploaded = None
 else:
-    uploaded = st.file_uploader(t("upload_label"), type="zip")
-    if uploaded is None:
+    uploaded = st.file_uploader(t("upload_label"), type=["zip", "json"], accept_multiple_files=True)
+    if not uploaded:
         st.markdown(
             t("how_to_download") + "\n"
             + t("instr_step1") + "\n"
@@ -163,18 +164,39 @@ else:
 
 
 @st.cache_data
-def load_data(file_bytes):
+def load_data_zip(file_bytes):
     import io
     buf = io.BytesIO(file_bytes)
     buf.name = "mevo.zip"
     return parse_zip(buf)
 
 
+@st.cache_data
+def load_data_json(trips_bytes, orders_bytes=None):
+    import io
+    trips_file = io.BytesIO(trips_bytes)
+    orders_file = io.BytesIO(orders_bytes) if orders_bytes is not None else None
+    return parse_json_files(trips_file, orders_file)
+
+
 if DEV_MODE:
     from pathlib import Path
-    df, orders_data = load_data(Path("mevo.zip").read_bytes())
+    df, orders_data = load_data_zip(Path("mevo.zip").read_bytes())
 else:
-    df, orders_data = load_data(uploaded.read())
+    # Detect input type
+    file_map = {f.name.lower(): f for f in uploaded}
+    zip_files = [f for f in uploaded if f.name.lower().endswith(".zip")]
+    if zip_files:
+        df, orders_data = load_data_zip(zip_files[0].read())
+    elif "trips.json" in file_map:
+        trips_bytes = file_map["trips.json"].read()
+        orders_bytes = file_map["orders.json"].read() if "orders.json" in file_map else None
+        df, orders_data = load_data_json(trips_bytes, orders_bytes)
+    else:
+        error_msg = {"pl": "Nie znaleziono pliku `trips.json` ani `.zip`. Wgraj poprawne pliki.",
+                     "en": "No `trips.json` or `.zip` file found. Please upload the correct files."}
+        st.error(error_msg[lang])
+        st.stop()
 distances = compute_distances(df)
 metrics = compute_overview_metrics(df, distances)
 heatmap_data = compute_activity_heatmap(df, month_names_short=MONTH_NAMES_SHORT[lang])

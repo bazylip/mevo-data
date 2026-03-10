@@ -30,7 +30,7 @@ MONTH_NAMES_PL_SHORT = MONTH_NAMES_SHORT["pl"]
 
 TRANSLATIONS = {
     # Upload / Instructions
-    "upload_label": {"pl": "Wgraj plik w formacie .zip", "en": "Upload a .zip file"},
+    "upload_label": {"pl": "Wgraj plik .zip lub pliki trips.json i orders.json", "en": "Upload a .zip or trips.json and orders.json files"},
     "how_to_download": {"pl": "#### Jak pobrać dane?", "en": "#### How to download your data?"},
     "instr_step1": {
         "pl": '1. Wejdź na <a href="https://rowermevo.pl" target="_blank">rowermevo.pl</a>',
@@ -53,8 +53,8 @@ TRANSLATIONS = {
         "en": "5. Download the ZIP archive with your data",
     },
     "instr_step6": {
-        "pl": "6. Wgraj pobrany plik ZIP powyżej",
-        "en": "6. Upload the downloaded ZIP file above",
+        "pl": "6. Wgraj pobrany plik ZIP powyżej — lub rozpakuj archiwum i wgraj tylko `trips.json` oraz `orders.json`",
+        "en": "6. Upload the downloaded ZIP file above — or unzip it and upload just `trips.json` and `orders.json`",
     },
     # Summary card
     "card_trips": {"pl": "przejazdy", "en": "trips"},

@@ -9,16 +9,9 @@ import pandas as pd
 from constants import CO2_PER_KM_CAR, DISTANCE_FACTOR, FUEL_PER_KM, MONTH_NAMES_PL_SHORT, MONTH_NAMES_SHORT
 
 
-def parse_zip(uploaded_file) -> tuple[pd.DataFrame, list]:
-    buf = io.BytesIO(uploaded_file.read())
-    with zipfile.ZipFile(buf) as z:
-        with z.open("trips.json") as f:
-            trips = json.load(f)
-        with z.open("orders.json") as f:
-            orders = json.load(f)
-
+def _build_trips_df(trips_data) -> pd.DataFrame:
     rows = []
-    for t in trips:
+    for t in trips_data:
         start = t["_startStation"]
         end = t["_endStation"]
         row = {
@@ -60,7 +53,23 @@ def parse_zip(uploaded_file) -> tuple[pd.DataFrame, list]:
     df["hour"] = df["started_at"].dt.hour
     df["day_of_week"] = df["started_at"].dt.dayofweek  # 0=Mon
     df["year_month"] = df["started_at"].dt.to_period("M").astype(str)
-    return df, orders
+    return df
+
+
+def parse_zip(uploaded_file) -> tuple[pd.DataFrame, list]:
+    buf = io.BytesIO(uploaded_file.read())
+    with zipfile.ZipFile(buf) as z:
+        with z.open("trips.json") as f:
+            trips = json.load(f)
+        with z.open("orders.json") as f:
+            orders = json.load(f)
+    return _build_trips_df(trips), orders
+
+
+def parse_json_files(trips_file, orders_file=None) -> tuple[pd.DataFrame, list]:
+    trips_data = json.load(trips_file)
+    orders_data = json.load(orders_file) if orders_file is not None else []
+    return _build_trips_df(trips_data), orders_data
 
 
 def compute_total_cost(orders_data):
