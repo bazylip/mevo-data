@@ -90,7 +90,7 @@ st.markdown(
     }
     .feedback-fab {
         position: fixed;
-        bottom: 24px;
+        bottom: 44px;
         right: 24px;
         z-index: 9999;
         background: #2ecc71;
